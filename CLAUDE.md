@@ -4,7 +4,18 @@
 Micro SaaS MVP project for a Vibe Coding class.
 
 ## Product Idea
-This app helps [target user] solve [problem] by [core action].
+This app helps individual developers and students manage their development projects in one place.
+
+**Target User**: Solo developers, university students working on personal or team-assigned projects
+
+**Core Problem**: Developers struggle to track project progress, organize meeting notes, and get structured feedback — scattered across notion, docs, and chat apps.
+
+**Core Value**:
+- Project dashboard: manage project info, goals, and status in one page
+- Meeting log: record and AI-summarize meeting notes, extract action items
+- Schedule manager: plan and track meeting dates and deadlines
+- AI advisor: get project improvement suggestions based on current status (chatbot, future)
+- Project intro page: shareable public page for each project
 
 ## Tech Stack
 -Next.js
