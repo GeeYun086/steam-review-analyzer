@@ -1,9 +1,9 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenAI } from "@google/genai";
 import type { Review } from "./steamService";
 
-const isMockMode = !process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY === "sk-ant-your-api-key-here";
+const isMockMode = !process.env.GEMINI_API_KEY;
 
-const client = isMockMode ? null : new Anthropic();
+const client = isMockMode ? null : new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
 export interface CategorySentiment {
   positive: number;
@@ -82,7 +82,7 @@ function makeMockResult(reviews: Review[]): AnalysisResult {
       price: make(ratio * 0.75, Math.round(reviews.length * 0.35)),
       multiplayer: make(ratio * 0.7, Math.round(reviews.length * 0.2)),
     },
-    summary: `[MOCK] 총 ${reviews.length}개 리뷰 중 긍정 ${positiveCount}개, 부정 ${negativeCount}개입니다. 게임플레이와 그래픽에 대한 평가는 전반적으로 긍정적이나, 최적화 문제가 주요 불만 요인으로 나타납니다. 실제 분석을 위해 ANTHROPIC_API_KEY를 설정해 주세요.`,
+    summary: `[MOCK] 총 ${reviews.length}개 리뷰 중 긍정 ${positiveCount}개, 부정 ${negativeCount}개입니다. 게임플레이와 그래픽에 대한 평가는 전반적으로 긍정적이나, 최적화 문제가 주요 불만 요인으로 나타납니다. 실제 분석을 위해 GEMINI_API_KEY를 설정해 주세요.`,
     priorities: [
       "[MOCK] 최적화 개선 — 프레임 드롭 및 로딩 시간 단축 필요",
       "[MOCK] 멀티플레이 안정성 — 매칭 오류 및 서버 끊김 보고 다수",
@@ -119,33 +119,21 @@ export async function analyzeReviews(reviews: Review[]): Promise<AnalysisResult>
     .map((r, i) => `[${i + 1}] ${r.recommended ? "👍" : "👎"} ${r.text.slice(0, 500)}`)
     .join("\n\n");
 
-  const message = await client!.messages.create({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 2000,
-    system: [
-      {
-        type: "text",
-        text: SYSTEM_PROMPT,
-        cache_control: { type: "ephemeral" },
-      },
-    ],
-    messages: [
-      {
-        role: "user",
-        content: `Analyze these ${reviews.length} Steam game reviews:\n\n${reviewText}`,
-      },
-    ],
+  const response = await client!.models.generateContent({
+    model: "gemini-2.0-flash",
+    contents: `Analyze these ${reviews.length} Steam game reviews:\n\n${reviewText}`,
+    config: {
+      systemInstruction: SYSTEM_PROMPT,
+    },
   });
 
-  const content = message.content[0];
-  if (content.type !== "text") throw new Error("Unexpected response type");
+  const text = response.text ?? "";
 
-  const jsonMatch = content.text.match(/\{[\s\S]*\}/);
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error("No JSON found in response");
 
   const result = JSON.parse(jsonMatch[0]) as AnalysisResult;
 
-  // Validate required fields
   if (!result.categories || !result.summary || !result.priorities || !result.quotes) {
     throw new Error("Invalid response structure");
   }
