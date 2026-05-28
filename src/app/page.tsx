@@ -16,18 +16,20 @@ export default function HomePage() {
   const [analyzeLoading, setAnalyzeLoading] = useState(false);
   const [step, setStep] = useState<Step | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [noResults, setNoResults] = useState(false);
 
   async function handleSearch(query: string) {
     setSearchLoading(true);
     setGames([]);
     setSelected(null);
     setError(null);
+    setNoResults(false);
     try {
       const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "검색 실패");
       setGames(data.games ?? []);
-      if (data.games?.length === 0) setError("검색 결과가 없습니다.");
+      if (data.games?.length === 0) setNoResults(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "오류가 발생했습니다.");
     } finally {
@@ -92,6 +94,13 @@ export default function HomePage() {
 
       {searchLoading && (
         <p className="text-center text-gray-400 animate-pulse">게임 검색 중...</p>
+      )}
+
+      {noResults && !searchLoading && (
+        <div className="text-center py-8 text-gray-400">
+          <p className="text-base">검색 결과가 없습니다.</p>
+          <p className="text-sm mt-1">다른 게임 이름으로 다시 검색해 보세요.</p>
+        </div>
       )}
 
       {games.length > 0 && (

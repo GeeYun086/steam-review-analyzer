@@ -2,19 +2,10 @@
 
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import type { CategorySentiment } from "@/services/aiService";
-
-const CATEGORY_LABELS: Record<string, string> = {
-  gameplay: "게임플레이",
-  graphics: "그래픽",
-  sound: "사운드",
-  story: "스토리",
-  performance: "최적화",
-  price: "가격",
-  multiplayer: "멀티플레이",
-};
+import { CATEGORY_LABELS, type CategoryKey } from "@/constants/categories";
 
 interface Props {
-  category: string;
+  category: CategoryKey;
   data: CategorySentiment;
 }
 
@@ -41,7 +32,7 @@ export default function SentimentChart({ category, data }: Props) {
     <div className="flex flex-col items-center bg-gray-800 rounded-xl p-4 border border-gray-700">
       <p className="text-sm text-gray-300 font-medium mb-1">{label}</p>
       <p className="text-xs text-gray-400 mb-2">총 {data.total}건 · 긍정 {positiveRate}%</p>
-      <ResponsiveContainer width="100%" height={160}>
+      <ResponsiveContainer width="100%" height={160} aria-label={`${label} 감성 분포 차트`}>
         <PieChart>
           <Pie
             data={chartData}

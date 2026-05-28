@@ -7,6 +7,7 @@ export default function ReviewSample({ quotes }: Props) {
 
   return (
     <div className="space-y-3">
+      <p className="text-xs text-gray-500">AI가 선별한 유저 발언입니다.</p>
       {quotes.map((quote, i) => (
         <blockquote
           key={i}

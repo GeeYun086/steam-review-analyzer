@@ -18,7 +18,11 @@ export default function SearchBar({ onSearch, loading }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="flex gap-2 w-full max-w-xl">
+      <label htmlFor="game-search" className="sr-only">
+        게임 이름 검색
+      </label>
       <input
+        id="game-search"
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}

@@ -7,32 +7,13 @@ import FeedbackCard from "@/components/FeedbackCard";
 import ReviewSample from "@/components/ReviewSample";
 import type { AnalysisResult } from "@/services/aiService";
 import type { GameSearchResult } from "@/services/steamService";
+import { CATEGORY_KEYS, CATEGORY_LABELS } from "@/constants/categories";
 
 interface StoredData {
   game: GameSearchResult;
   analysis: AnalysisResult;
   reviewCount: number;
 }
-
-const CATEGORY_KEYS = [
-  "gameplay",
-  "graphics",
-  "sound",
-  "story",
-  "performance",
-  "price",
-  "multiplayer",
-] as const;
-
-const CATEGORY_LABELS: Record<string, string> = {
-  gameplay: "게임플레이",
-  graphics: "그래픽",
-  sound: "사운드",
-  story: "스토리",
-  performance: "최적화",
-  price: "가격",
-  multiplayer: "멀티플레이",
-};
 
 function DashboardContent() {
   const router = useRouter();
@@ -57,7 +38,13 @@ function DashboardContent() {
     }
   }, [appId, router]);
 
-  if (!data) return null;
+  if (!data) {
+    return (
+      <div className="flex justify-center py-20">
+        <p className="text-gray-400 animate-pulse">데이터를 불러오는 중...</p>
+      </div>
+    );
+  }
 
   const { game, analysis, reviewCount } = data;
 
@@ -96,9 +83,6 @@ function DashboardContent() {
             />
           ))}
         </div>
-        <p className="text-xs text-gray-500 mt-2">
-          카테고리 레이블: {CATEGORY_KEYS.map((k) => CATEGORY_LABELS[k]).join(", ")}
-        </p>
       </section>
 
       <section>

@@ -32,7 +32,6 @@ export default function GameCard({ game, onSelect, selected, loading }: Props) {
         />
       )}
       <span className="text-white font-medium truncate">{game.name}</span>
-      <span className="ml-auto text-gray-400 text-sm shrink-0">#{game.appid}</span>
     </button>
   );
 }
