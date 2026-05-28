@@ -57,26 +57,37 @@ export async function getGameDetails(appId: number): Promise<GameDetails | null>
   };
 }
 
-async function fetchReviewBatch(appId: number, filter: "positive" | "negative", count: number): Promise<Review[]> {
+interface ReviewBatchResult {
+  reviews: Review[];
+  totalReviews: number;
+}
+
+async function fetchReviewBatch(appId: number, filter: "positive" | "negative", count: number): Promise<ReviewBatchResult> {
   const url = `https://store.steampowered.com/appreviews/${appId}?json=1&filter=recent&review_type=${filter}&num_per_page=${count}&l=english`;
   const res = await fetch(url);
-  if (!res.ok) return [];
+  if (!res.ok) return { reviews: [], totalReviews: 0 };
   const data = await res.json();
-  if (!data.success || !data.reviews) return [];
+  if (!data.success || !data.reviews) return { reviews: [], totalReviews: 0 };
 
-  return data.reviews
+  const reviews = data.reviews
     .map((r: { review: string; voted_up: boolean; timestamp_created: number }) => ({
       text: r.review,
       recommended: r.voted_up,
       timestamp: r.timestamp_created,
     }))
     .filter((r: Review) => r.text.length >= 10);
+
+  const totalReviews = data.query_summary?.total_reviews ?? 0;
+  return { reviews, totalReviews };
 }
 
-export async function getReviews(appId: number): Promise<Review[]> {
+export async function getReviews(appId: number): Promise<{ reviews: Review[]; totalReviews: number }> {
   const [positive, negative] = await Promise.all([
     fetchReviewBatch(appId, "positive", 50),
     fetchReviewBatch(appId, "negative", 50),
   ]);
-  return [...positive, ...negative];
+  return {
+    reviews: [...positive.reviews, ...negative.reviews],
+    totalReviews: positive.totalReviews + negative.totalReviews,
+  };
 }

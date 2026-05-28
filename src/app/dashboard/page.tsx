@@ -13,6 +13,7 @@ interface StoredData {
   game: GameSearchResult;
   analysis: AnalysisResult;
   reviewCount: number;
+  totalReviews: number;
 }
 
 function DashboardContent() {
@@ -46,7 +47,7 @@ function DashboardContent() {
     );
   }
 
-  const { game, analysis, reviewCount } = data;
+  const { game, analysis, reviewCount, totalReviews } = data;
 
   return (
     <div className="space-y-10">
@@ -54,7 +55,10 @@ function DashboardContent() {
         <div>
           <h2 className="text-2xl font-bold text-white">{game.name}</h2>
           <p className="text-gray-400 text-sm mt-1">
-            리뷰 {reviewCount}개 분석 완료
+            최신 리뷰 {reviewCount}개 샘플 분석
+            {totalReviews > 0 && (
+              <span className="text-gray-500"> (전체 {totalReviews.toLocaleString()}개 중)</span>
+            )}
           </p>
         </div>
         <button

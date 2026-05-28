@@ -13,8 +13,8 @@ export async function GET(
   }
 
   try {
-    const reviews = await getReviews(id);
-    return NextResponse.json({ reviews, count: reviews.length });
+    const { reviews, totalReviews } = await getReviews(id);
+    return NextResponse.json({ reviews, count: reviews.length, totalReviews });
   } catch {
     return NextResponse.json({ error: "Failed to fetch reviews" }, { status: 500 });
   }

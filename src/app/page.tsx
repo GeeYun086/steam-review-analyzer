@@ -64,7 +64,7 @@ export default function HomePage() {
       setStep("완료");
       sessionStorage.setItem(
         `analysis_${selected.appid}`,
-        JSON.stringify({ game: selected, analysis: analysisData, reviewCount: reviewData.count })
+        JSON.stringify({ game: selected, analysis: analysisData, reviewCount: reviewData.count, totalReviews: reviewData.totalReviews })
       );
       router.push(`/dashboard?appId=${selected.appid}`);
     } catch (e) {
