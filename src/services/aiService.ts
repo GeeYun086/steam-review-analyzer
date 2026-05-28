@@ -1,9 +1,9 @@
-import { GoogleGenAI } from "@google/genai";
+import Groq from "groq-sdk";
 import type { Review } from "./steamService";
 
-const isMockMode = !process.env.GEMINI_API_KEY;
+const isMockMode = !process.env.GROQ_API_KEY;
 
-const client = isMockMode ? null : new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+const client = isMockMode ? null : new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 export interface CategorySentiment {
   positive: number;
@@ -27,6 +27,7 @@ export interface AnalysisResult {
 }
 
 const SYSTEM_PROMPT = `You are a game review analyst. Analyze Steam game reviews and categorize them.
+LANGUAGE RULE: All text values in your JSON response (summary, priorities, quotes) MUST be written in Korean (한국어). No exceptions. Do not use English, Chinese, Vietnamese, or any other language in text fields.
 
 Categories:
 - gameplay: Game mechanics, controls, level design, replayability
@@ -59,7 +60,8 @@ Rules:
 - Count each review-category mention once
 - priorities: list top issues to fix (max 5, focus on negative feedback)
 - quotes: pick the most insightful user quotes verbatim (max 3)
-- If all reviews are positive, set priorities to ["No major issues found"] and summarize strengths`;
+- If all reviews are positive, set priorities to ["주요 문제 없음"] and summarize strengths
+- CRITICAL: You MUST write ALL text fields (summary, priorities, quotes) in Korean ONLY. Do not use any other language. Translate and paraphrase user quotes into natural Korean.`;
 
 function makeMockResult(reviews: Review[]): AnalysisResult {
   const positiveCount = reviews.filter((r) => r.recommended).length;
@@ -82,7 +84,7 @@ function makeMockResult(reviews: Review[]): AnalysisResult {
       price: make(ratio * 0.75, Math.round(reviews.length * 0.35)),
       multiplayer: make(ratio * 0.7, Math.round(reviews.length * 0.2)),
     },
-    summary: `[MOCK] 총 ${reviews.length}개 리뷰 중 긍정 ${positiveCount}개, 부정 ${negativeCount}개입니다. 게임플레이와 그래픽에 대한 평가는 전반적으로 긍정적이나, 최적화 문제가 주요 불만 요인으로 나타납니다. 실제 분석을 위해 GEMINI_API_KEY를 설정해 주세요.`,
+    summary: `[MOCK] 총 ${reviews.length}개 리뷰 중 긍정 ${positiveCount}개, 부정 ${negativeCount}개입니다. 게임플레이와 그래픽에 대한 평가는 전반적으로 긍정적이나, 최적화 문제가 주요 불만 요인으로 나타납니다. 실제 분석을 위해 GROQ_API_KEY를 설정해 주세요.`,
     priorities: [
       "[MOCK] 최적화 개선 — 프레임 드롭 및 로딩 시간 단축 필요",
       "[MOCK] 멀티플레이 안정성 — 매칭 오류 및 서버 끊김 보고 다수",
@@ -115,24 +117,27 @@ export async function analyzeReviews(reviews: Review[]): Promise<AnalysisResult>
 
   if (isMockMode) return makeMockResult(reviews);
 
-  const reviewText = reviews
-    .map((r, i) => `[${i + 1}] ${r.recommended ? "👍" : "👎"} ${r.text.slice(0, 500)}`)
+  const positive = reviews.filter((r) => r.recommended).slice(0, 20);
+  const negative = reviews.filter((r) => !r.recommended).slice(0, 20);
+  const sampled = [...positive, ...negative];
+
+  const reviewText = sampled
+    .map((r, i) => `[${i + 1}] ${r.recommended ? "👍" : "👎"} ${r.text.slice(0, 300)}`)
     .join("\n\n");
 
-  const response = await client!.models.generateContent({
-    model: "gemini-2.0-flash",
-    contents: `Analyze these ${reviews.length} Steam game reviews:\n\n${reviewText}`,
-    config: {
-      systemInstruction: SYSTEM_PROMPT,
-    },
+  const completion = await client!.chat.completions.create({
+    model: "llama-3.3-70b-versatile",
+    messages: [
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "user", content: `Analyze these ${sampled.length} Steam game reviews:\n\n${reviewText}` },
+    ],
+    response_format: { type: "json_object" },
+    max_tokens: 2000,
   });
 
-  const text = response.text ?? "";
+  const text = completion.choices[0].message.content ?? "";
 
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error("No JSON found in response");
-
-  const result = JSON.parse(jsonMatch[0]) as AnalysisResult;
+  const result = JSON.parse(text) as AnalysisResult;
 
   if (!result.categories || !result.summary || !result.priorities || !result.quotes) {
     throw new Error("Invalid response structure");
