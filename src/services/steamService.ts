@@ -23,9 +23,15 @@ export interface Review {
   timestamp: number;
 }
 
+function fetchWithTimeout(url: string, options: RequestInit & { next?: object } = {}, ms = 10_000): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
+}
+
 export async function searchGames(query: string): Promise<GameSearchResult[]> {
   const url = `https://store.steampowered.com/api/storesearch/?term=${encodeURIComponent(query)}&l=english&cc=US`;
-  const res = await fetch(url, { next: { revalidate: 60 } });
+  const res = await fetchWithTimeout(url, { next: { revalidate: 60 } });
   if (!res.ok) throw new Error("Steam search failed");
   const data = await res.json();
   return (data.items ?? []).slice(0, 5).map((item: { id: number; name: string; tiny_image: string; logo: string }) => ({
@@ -38,7 +44,7 @@ export async function searchGames(query: string): Promise<GameSearchResult[]> {
 
 export async function getGameDetails(appId: number): Promise<GameDetails | null> {
   const url = `https://store.steampowered.com/api/appdetails?appids=${appId}&l=english`;
-  const res = await fetch(url, { next: { revalidate: 300 } });
+  const res = await fetchWithTimeout(url, { next: { revalidate: 300 } });
   if (!res.ok) return null;
   const data = await res.json();
   const game = data[appId.toString()]?.data;
@@ -64,7 +70,7 @@ interface ReviewBatchResult {
 
 async function fetchReviewBatch(appId: number, filter: "positive" | "negative", count: number): Promise<ReviewBatchResult> {
   const url = `https://store.steampowered.com/appreviews/${appId}?json=1&filter=recent&review_type=${filter}&num_per_page=${count}&l=english`;
-  const res = await fetch(url);
+  const res = await fetchWithTimeout(url);
   if (!res.ok) return { reviews: [], totalReviews: 0 };
   const data = await res.json();
   if (!data.success || !data.reviews) return { reviews: [], totalReviews: 0 };

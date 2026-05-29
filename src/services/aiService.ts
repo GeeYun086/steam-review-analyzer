@@ -64,6 +64,28 @@ Rules:
 - quotes: 가장 핵심적인 유저 의견을 자연스러운 한국어로 번역·요약 (원문 절대 사용 금지)
 - 긍정 리뷰만 있으면 priorities를 ["주요 문제 없음"]으로 설정`;
 
+// AI 응답 런타임 스키마 검증
+function validateAnalysisResult(data: unknown): AnalysisResult {
+  if (typeof data !== "object" || data === null) throw new Error("AI response is not an object");
+  const d = data as Record<string, unknown>;
+
+  const CATEGORY_KEYS = ["gameplay","graphics","sound","story","performance","price","multiplayer"] as const;
+  if (typeof d.categories !== "object" || d.categories === null) throw new Error("Missing categories");
+  for (const key of CATEGORY_KEYS) {
+    const cat = (d.categories as Record<string, unknown>)[key];
+    if (typeof cat !== "object" || cat === null) throw new Error(`Missing category: ${key}`);
+    const c = cat as Record<string, unknown>;
+    if (typeof c.positive !== "number" || typeof c.negative !== "number" || typeof c.total !== "number") {
+      throw new Error(`Invalid category shape: ${key}`);
+    }
+  }
+  if (typeof d.summary !== "string") throw new Error("Missing summary");
+  if (!Array.isArray(d.priorities) || d.priorities.some((p) => typeof p !== "string")) throw new Error("Invalid priorities");
+  if (!Array.isArray(d.quotes) || d.quotes.some((q) => typeof q !== "string")) throw new Error("Invalid quotes");
+
+  return data as AnalysisResult;
+}
+
 // 한국어·ASCII 이외 문자(일본어·중국어·태국어 등) 감지
 function hasForeignChars(text: string): boolean {
   // 허용: 인쇄 가능 ASCII(U+0020-U+007E), 한글 음절(U+AC00-U+D7A3), 한글 자모(U+1100+, U+3130+)
@@ -184,11 +206,8 @@ export async function analyzeReviews(reviews: Review[]): Promise<AnalysisResult>
   });
 
   const text = completion.choices[0].message.content ?? "";
-  const result = JSON.parse(text) as AnalysisResult;
-
-  if (!result.categories || !result.summary || !result.priorities || !result.quotes) {
-    throw new Error("Invalid response structure");
-  }
+  const parsed = JSON.parse(text);
+  const result = validateAnalysisResult(parsed);
 
   // 비한국어 문자 감지 시 자동 교정
   return await enforceKorean(result);

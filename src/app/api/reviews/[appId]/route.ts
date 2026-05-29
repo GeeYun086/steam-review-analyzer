@@ -8,7 +8,7 @@ export async function GET(
   const { appId } = await params;
   const id = parseInt(appId, 10);
 
-  if (isNaN(id) || id <= 0) {
+  if (isNaN(id) || id <= 0 || id > 2_147_483_647) {
     return NextResponse.json({ error: "Invalid appId" }, { status: 400 });
   }
 
