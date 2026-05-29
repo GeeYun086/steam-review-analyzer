@@ -27,7 +27,11 @@ export interface AnalysisResult {
 }
 
 const SYSTEM_PROMPT = `You are a game review analyst. Analyze Steam game reviews and categorize them.
-LANGUAGE RULE: All text values in your JSON response (summary, priorities, quotes) MUST be written in Korean (한국어). No exceptions. Do not use English, Chinese, Vietnamese, or any other language in text fields.
+
+##  ABSOLUTE LANGUAGE RULE — NO EXCEPTIONS ##
+Every single character in "summary", "priorities", and "quotes" fields MUST be written in Korean (한국어).
+This includes quotes — do NOT copy the original text. Always translate and rewrite in natural Korean.
+If you output ANY non-Korean characters (English, Chinese, Thai, Japanese, Vietnamese, etc.) in text fields, the response is invalid.
 
 Categories:
 - gameplay: Game mechanics, controls, level design, replayability
@@ -51,17 +55,17 @@ Output ONLY valid JSON matching this exact schema:
     "price": { "positive": 0, "negative": 0, "total": 0 },
     "multiplayer": { "positive": 0, "negative": 0, "total": 0 }
   },
-  "summary": "2-3 sentence summary of the main issues and strengths",
-  "priorities": ["Top improvement priority 1", "Top improvement priority 2", "Top improvement priority 3"],
-  "quotes": ["Representative user quote 1", "Representative user quote 2", "Representative user quote 3"]
+  "summary": "전체 리뷰의 핵심 장단점을 2~3문장으로 요약 (반드시 한국어)",
+  "priorities": ["개선 우선순위 1 (한국어)", "개선 우선순위 2 (한국어)", "개선 우선순위 3 (한국어)"],
+  "quotes": ["대표 유저 발언을 한국어로 번역·요약한 것 1", "대표 유저 발언 2", "대표 유저 발언 3"]
 }
 
 Rules:
 - Count each review-category mention once
 - priorities: list top issues to fix (max 5, focus on negative feedback)
-- quotes: pick the most insightful user quotes verbatim (max 3)
+- quotes: translate and paraphrase the most insightful user opinions into natural Korean (NEVER copy original non-Korean text)
 - If all reviews are positive, set priorities to ["주요 문제 없음"] and summarize strengths
-- CRITICAL: You MUST write ALL text fields (summary, priorities, quotes) in Korean ONLY. Do not use any other language. Translate and paraphrase user quotes into natural Korean.`;
+- REMINDER: summary, priorities, quotes must contain ONLY Korean text (한국어만 사용)`;
 
 function makeMockResult(reviews: Review[]): AnalysisResult {
   const positiveCount = reviews.filter((r) => r.recommended).length;
