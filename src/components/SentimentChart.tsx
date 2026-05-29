@@ -4,6 +4,10 @@ import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recha
 import type { CategorySentiment } from "@/services/aiService";
 import { CATEGORY_LABELS, type CategoryKey } from "@/constants/categories";
 
+const TOOLTIP_CONTENT_STYLE = { backgroundColor: "#1f2937", border: "none", borderRadius: "8px" };
+const TOOLTIP_ITEM_STYLE = { color: "#e5e7eb" };
+const LEGEND_WRAPPER_STYLE = { fontSize: "12px", color: "#9ca3af" };
+
 interface Props {
   category: CategoryKey;
   data: CategorySentiment;
@@ -47,13 +51,8 @@ export default function SentimentChart({ category, data }: Props) {
               <Cell key={index} fill={entry.color} />
             ))}
           </Pie>
-          <Tooltip
-            contentStyle={{ backgroundColor: "#1f2937", border: "none", borderRadius: "8px" }}
-            itemStyle={{ color: "#e5e7eb" }}
-          />
-          <Legend
-            wrapperStyle={{ fontSize: "12px", color: "#9ca3af" }}
-          />
+          <Tooltip contentStyle={TOOLTIP_CONTENT_STYLE} itemStyle={TOOLTIP_ITEM_STYLE} />
+          <Legend wrapperStyle={LEGEND_WRAPPER_STYLE} />
         </PieChart>
       </ResponsiveContainer>
     </div>
